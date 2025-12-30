@@ -23,7 +23,7 @@ const FilterButton: FC<FilterButtonProps> = ({ label, isActive, to }) => {
     return (
         <Link
             href={to}
-            className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors duration-200 whitespace-nowrap border ${
+            className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors duration-200 whitespace-nowrap border relative z-20 ${
                 isActive 
                 ? 'bg-brand-accent text-white border-brand-accent shadow' 
                 : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
@@ -116,8 +116,8 @@ function ProductsListContent() {
             </div>
 
             <div className="container mx-auto px-5 lg:px-8 py-8">
-                {/* Filters */}
-                <AnimatedSection className="mb-8">
+                {/* Filters - Added relative z-10 to container */}
+                <AnimatedSection className="mb-8 relative z-10">
                     <div className="flex flex-col md:flex-row gap-6 items-start">
                         {/* Categories Filter */}
                         <div className="w-full overflow-x-auto pb-4 custom-scrollbar">

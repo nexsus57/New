@@ -15,8 +15,8 @@ const ProductCard: FC<ProductCardProps> = ({ product, categoryName }) => {
   const { addToCart } = useCart();
 
   const handleAddToQuote = (e: MouseEvent<HTMLButtonElement>) => {
-    // Stop propagation so we don't trigger the card click (though z-index handles most of this)
-    e.stopPropagation(); 
+    e.preventDefault(); // Prevent link navigation
+    e.stopPropagation(); // Prevent bubbling to parent
     addToCart(product.id);
     alert(`${product.name} added to quote basket!`);
   };
@@ -24,15 +24,15 @@ const ProductCard: FC<ProductCardProps> = ({ product, categoryName }) => {
   return (
     <div className="group relative bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col h-full border border-gray-100 overflow-hidden transform hover:-translate-y-1.5 product-card">
       
-      {/* 1. Primary Overlay Link - Makes the whole card clickable */}
+      {/* 1. Primary Overlay Link - Z-10 to sit above static content */}
       <Link 
         href={`/product/${product.id}`}
-        className="absolute inset-0 z-0"
+        className="absolute inset-0 z-10"
         aria-label={`View details for ${product.name}`}
       />
 
-      {/* 2. Content Container - Pointer events pass through to link by default, but we control z-indexes */}
-      <div className="flex flex-col h-full pointer-events-none"> 
+      {/* 2. Content Container - Standard static flow */}
+      <div className="flex flex-col h-full"> 
         
         {/* Image Section */}
         <div className="relative overflow-hidden bg-gray-50 p-4 aspect-[4/3] flex items-center justify-center">
@@ -45,7 +45,7 @@ const ProductCard: FC<ProductCardProps> = ({ product, categoryName }) => {
             height="300"
             onError={(e) => (e.currentTarget.src = "https://file.garden/aIULwzQ_QkPKQcGw/tapeindialogo.png")}
           />
-          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-0">
               <span className="bg-white/90 text-brand-blue-dark text-xs font-bold px-2 py-1 rounded shadow-sm backdrop-blur-sm">
                   View Details
               </span>
@@ -64,15 +64,15 @@ const ProductCard: FC<ProductCardProps> = ({ product, categoryName }) => {
             {product.shortDescription}
           </p>
 
-          <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between gap-3 relative z-10">
+          <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between gap-3 relative z-20">
               <span className="text-sm font-bold text-brand-accent group-hover:text-brand-accent-dark flex items-center">
                   View Product
               </span>
               
-              {/* 3. Action Button - Must have pointer-events-auto and higher Z-index */}
+              {/* 3. Action Button - Z-20 to be clickable above the Link */}
               <button
                   onClick={handleAddToQuote}
-                  className="bg-brand-gray hover:bg-brand-yellow text-brand-blue-dark w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-300 shadow-sm pointer-events-auto cursor-pointer"
+                  className="bg-brand-gray hover:bg-brand-yellow text-brand-blue-dark w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-300 shadow-sm cursor-pointer relative"
                   title="Add to Quote"
                   aria-label={`Add ${product.name} to quote`}
               >
