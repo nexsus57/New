@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, ReactNode, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Sidebar from '../../components/admin/Sidebar';
 import AdminHeader from '../../components/admin/AdminHeader';
 import { useAuth } from '../../context/AuthContext';
@@ -10,19 +11,33 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isAuthenticated } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
-  // Basic client-side protection
+  const isLoginPage = pathname === '/admin/login';
+
   useEffect(() => {
-    // Wait for hydration to check auth state from local storage
-    if (typeof window !== 'undefined' && !isAuthenticated) {
+    // 1. If NOT authenticated and NOT on login page -> Redirect to Login
+    if (typeof window !== 'undefined' && !isAuthenticated && !isLoginPage) {
         router.replace('/admin/login');
     }
-  }, [isAuthenticated, router]);
+    
+    // 2. If Authenticated and ON login page -> Redirect to Dashboard
+    if (typeof window !== 'undefined' && isAuthenticated && isLoginPage) {
+        router.replace('/admin/dashboard');
+    }
+  }, [isAuthenticated, router, isLoginPage]);
 
-  if (!isAuthenticated) {
-      return null; // Don't render admin layout content while redirecting
+  // If we are on the login page, render ONLY the children (the login form), no sidebar/header
+  if (isLoginPage) {
+      return <>{children}</>;
   }
 
+  // If checking auth and not logged in, render nothing while redirecting
+  if (!isAuthenticated) {
+      return null; 
+  }
+
+  // Authenticated Dashboard Layout
   return (
     <div className="flex h-screen bg-admin-bg font-sans">
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
