@@ -1,3 +1,4 @@
+
 import { useMemo } from 'react';
 import { useProducts } from '../context/ProductContext';
 import { BlogArticle } from '../types';
@@ -24,8 +25,8 @@ export const useSeoEnhancedContent = (article: BlogArticle | undefined) => {
 
         // Sort product names by length, descending. This is crucial to match
         // longer names first (e.g., "Green Polyester Tape" before "Polyester Tape").
-        // FIX: The sort callback parameters 'a' and 'b' are strings from productLinkMap.keys(). Access '.length' directly.
-        const sortedProductNames = [...productLinkMap.keys()].sort((a, b) => b.length - a.length);
+        // FIX: Use Array.from() to convert MapIterator to array, avoiding TS downlevelIteration error.
+        const sortedProductNames = Array.from(productLinkMap.keys()).sort((a, b) => b.length - a.length);
 
         // This regex splits the content by HTML tags, keeping the tags in the resulting array.
         // This allows us to apply replacements only to the text content, not the HTML itself.
