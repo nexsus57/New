@@ -135,15 +135,8 @@ const AdminProductEditPage = () => {
 
         if (isEditing && finalProductData.id) {
             const { id, ...updateData } = dataForContext;
-            // Type guard to ensure id is defined
-            if (id && typeof id === 'string') {
-                updateProduct(id!, updateData);
-                alert('Product updated successfully!');
-            } else {
-                console.error('Product ID is missing or invalid');
-                alert('Error: Cannot update product without valid ID');
-                return;
-            }
+            updateProduct(id!, updateData);
+            alert('Product updated successfully!');
         } else {
             const { id, ...createData } = dataForContext;
             addProduct(createData);
