@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef, useMemo, type KeyboardEvent } from 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Fuse from 'fuse.js';
-import { create, insertMultiple, search as oramaSearch } from '@orama/orama';
+import { create, insertMultiple, search as oramaSearch, type Orama } from '@orama/orama';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
@@ -18,8 +18,19 @@ interface SearchResult extends Product {
 const MAX_RESULTS = 8;
 const MAX_RECENT_SEARCHES = 5;
 
-// Global reference for Orama DB
-let oramaDb: any = null;
+// Define Orama Schema with 'as const' to ensure strict literal type inference
+const searchSchema = {
+  id: 'string',
+  name: 'string',
+  description: 'string',
+  category: 'string',
+  industries: 'string[]',
+} as const;
+
+type SearchSchemaType = typeof searchSchema;
+
+// Global reference for Orama DB with strict typing
+let oramaDb: Orama<SearchSchemaType> | null = null;
 let lastProductCount = 0;
 
 const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
@@ -43,7 +54,6 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
         { name: 'name', weight: 0.6 },
         { name: 'id', weight: 0.3 },
         { name: 'category', weight: 0.2 },
-        // { name: 'tags', weight: 0.2 }, // Tags property might not exist on Product type
         { name: 'industries', weight: 0.1 },
         { name: 'shortDescription', weight: 0.05 }
       ],
@@ -56,29 +66,28 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
   // Orama Instance
   useEffect(() => {
     const initOrama = async () => {
+      // Prevent unnecessary re-initialization
       if (oramaDb && products.length === lastProductCount) return;
       
-      const db = await create({
-        schema: {
-          id: 'string',
-          name: 'string',
-          description: 'string',
-          category: 'string',
-          industries: 'string[]',
-        },
-      });
+      try {
+        const db = await create({
+          schema: searchSchema,
+        });
 
-      const records = products.map(p => ({
-        id: p.id,
-        name: p.name,
-        description: p.shortDescription || '',
-        category: p.category,
-        industries: p.industries || [],
-      }));
+        const records = products.map(p => ({
+          id: p.id,
+          name: p.name,
+          description: p.shortDescription || '',
+          category: p.category,
+          industries: p.industries || [],
+        }));
 
-      await insertMultiple(db, records);
-      oramaDb = db;
-      lastProductCount = products.length;
+        await insertMultiple(db, records);
+        oramaDb = db;
+        lastProductCount = products.length;
+      } catch (e) {
+        console.error("Failed to initialize Orama search", e);
+      }
     };
 
     initOrama();
@@ -106,6 +115,7 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
     let combinedResults: SearchResult[] = [];
     const seenIds = new Set<string>();
 
+    // 1. Fuse.js Search (Approximate/Fuzzy)
     const fuseResult = fuse.search(q);
     const fuseMatches = fuseResult.map(res => {
       seenIds.add(res.item.id);
@@ -117,6 +127,7 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
     const isDescriptive = q.split(' ').length >= 4;
     const needsMoreResults = fuseMatches.length < 3;
 
+    // 2. Orama Search (Full-text/Exact)
     if ((needsMoreResults || isDescriptive) && oramaDb) {
       try {
         const oramaResult = await oramaSearch(oramaDb, {
