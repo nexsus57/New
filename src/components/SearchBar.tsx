@@ -79,8 +79,8 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
         industries: p.industries || [],
       }));
 
-      // FIX: Cast to any[] to resolve strict type mismatch with Orama's insertMultiple
-      await insertMultiple(db, records as unknown as any[]);
+      // Fix: Cast insertMultiple to any to bypass strict type inference issues where TS expects never[]
+      await (insertMultiple as any)(db, records);
       oramaDb = db;
       lastProductCount = products.length;
     };
