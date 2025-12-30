@@ -32,8 +32,19 @@ export default function AdminIndustryEditPage() {
         const { name, value } = e.target;
         
         if (name.startsWith('seo.')) {
-            const seoKey = name.split('.')[1];
-            setIndustry(prev => prev ? { ...prev, seo: { ...prev.seo, [seoKey]: value } } : null);
+            const seoKey = name.split('.')[1] as 'title' | 'description';
+            setIndustry(prev => {
+                if (!prev) return null;
+                // Fix: Ensure seo object is fully defined if it was missing to satisfy TypeScript types
+                const currentSeo = prev.seo || { title: '', description: '' };
+                return { 
+                    ...prev, 
+                    seo: { 
+                        ...currentSeo, 
+                        [seoKey]: value 
+                    } 
+                };
+            });
         } else {
             setIndustry(prev => prev ? { ...prev, [name]: value } : null);
         }
