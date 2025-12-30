@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState, type FC, useEffect, type CSSProperties } from 'react';
@@ -11,6 +12,7 @@ import CanonicalTag from '../../../components/CanonicalTag';
 import { ColorOption, SeoPageData } from '../../../types';
 import FaqAccordion from '../../../components/FaqAccordion';
 import NotFound from '../../not-found';
+import MetaTags from '../../../components/MetaTags';
 
 interface ColorSwatchProps {
     name: string;
@@ -111,6 +113,7 @@ export default function ProductPage() {
     return (
         <>
             <CanonicalTag />
+            <MetaTags pageData={productSeoData} />
             
             <main className="py-12 md:py-16 bg-gray-50">
                 <div className="container mx-auto px-5 lg:px-8">

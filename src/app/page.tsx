@@ -15,6 +15,7 @@ import { type Product } from '../types';
 import CategoryCard from '../components/CategoryCard';
 import TestimonialCard from '../components/TestimonialCard';
 import { seoData } from '../data/seoData';
+import MetaTags from '../components/MetaTags';
 
 export default function HomePage() {
     const { products } = useProducts();
@@ -24,9 +25,20 @@ export default function HomePage() {
     const homeData = useMemo(() => {
         const found = seoData.find(p => p["Page Name"] === "Home");
         return found || {
+            "Page Type": "Homepage",
+            "Page Name": "Home",
+            "Full URL": "https://tapeindia.shop/",
+            "Title (≤60 chars)": "Industrial Tape Manufacturer & Wholesaler | Chennai | Tape India",
+            "Meta Description (≤160 chars)": "Tape India is a leading B2B manufacturer & supplier of 200+ industrial tapes in Chennai. We offer packaging, safety, electrical & specialty tapes. Get a bulk quote!",
             H1: 'Industrial Tape Manufacturer & Bulk Supplier in India',
             summary: "Leading B2B supplier of industrial tapes since 1957.",
-            CTA: 'Request a Quote'
+            CTA: 'Request a Quote',
+            "Schema Type": "WebSite",
+            faqs: [],
+            "Product Schema (JSON-LD)": null,
+            "LocalBusiness Schema (JSON-LD)": "{}",
+            "FAQ Schema (JSON-LD)": "{}",
+            "Combined Schema (JSON-LD)": "{}"
         };
     }, []);
 
@@ -50,6 +62,8 @@ export default function HomePage() {
 
   return (
     <>
+      <MetaTags pageData={homeData} />
+      
       {/* Hero Section */}
       <section className="relative text-white overflow-hidden">
         <div className="absolute inset-0">

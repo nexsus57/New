@@ -1,3 +1,4 @@
+
 import type { FC, ReactNode } from 'react';
 // FIX: Import SeoPageData from its source definition in `types.ts` instead of `data/seoData.ts`
 import type { SeoPageData } from '../types';
@@ -28,6 +29,17 @@ const SeoAccordionCard: FC<SeoAccordionCardProps> = ({ pageData, isOpen, onToggl
         summary,
         faqs
     } = pageData;
+
+    let prettySchema = "Invalid Schema";
+    if (schema) {
+        try {
+            prettySchema = JSON.stringify(JSON.parse(schema), null, 2);
+        } catch (e) {
+            prettySchema = "Error parsing schema JSON";
+        }
+    } else {
+        prettySchema = "No Schema defined";
+    }
 
     return (
         <div className="bg-white rounded-lg shadow-md border border-gray-200/80 overflow-hidden">
@@ -72,17 +84,17 @@ const SeoAccordionCard: FC<SeoAccordionCardProps> = ({ pageData, isOpen, onToggl
                         </DetailRow>
                          <DetailRow label="FAQs">
                             <div className="space-y-2">
-                                {faqs.map((faq, index) => (
+                                {faqs && faqs.length > 0 ? faqs.map((faq, index) => (
                                     <div key={index}>
                                         <p className="font-semibold">{faq.name}</p>
                                         <p className="pl-2">- {faq.acceptedAnswer.text}</p>
                                     </div>
-                                ))}
+                                )) : <p className="text-gray-400">No FAQs</p>}
                             </div>
                         </DetailRow>
                         <DetailRow label="JSON-LD Schema">
                             <pre className="bg-gray-800 text-white p-4 rounded-md text-xs overflow-x-auto">
-                                <code>{JSON.stringify(JSON.parse(schema), null, 2)}</code>
+                                <code>{prettySchema}</code>
                             </pre>
                         </DetailRow>
                     </dl>
