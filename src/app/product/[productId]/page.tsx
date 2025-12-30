@@ -10,6 +10,13 @@ type Props = {
   searchParams: { [key: string]: string | string[] | undefined };
 };
 
+// CRITICAL: Tells Next.js which pages to build statically
+export async function generateStaticParams() {
+  return PRODUCTS.map((product) => ({
+    productId: product.id,
+  }));
+}
+
 export async function generateMetadata(
   { params }: Props
 ): Promise<Metadata> {

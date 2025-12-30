@@ -8,6 +8,13 @@ type Props = {
   params: { slug: string };
 };
 
+// CRITICAL: Tells Next.js which pages to build statically
+export async function generateStaticParams() {
+  return ALL_BLOG_ARTICLES.map((article) => ({
+    slug: article.id,
+  }));
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const article = ALL_BLOG_ARTICLES.find(a => a.id === params.slug);
 
