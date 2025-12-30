@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply font-sans bg-white text-slate-800 antialiased leading-relaxed;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading font-bold text-brand-blue-dark;
+  }
+  h1 {
+    /* Approx 30px -> 36px */
+    @apply text-3xl md:text-4xl tracking-tight !leading-tight;
+  }
+  h2 {
+    /* Approx 24px -> 30px */
+    @apply text-2xl md:text-3xl !leading-snug;
+  }
+  h3 {
+    /* Approx 20px -> 24px */
+    @apply text-xl md:text-2xl !leading-normal;
+  }
+  p {
+    /* Approx 16px -> 18px */
+    @apply text-base lg:text-lg;
+  }
+  
+  /* GLOBAL FIX: Ensure all images are responsive and block-level by default. */
+  img {
+    @apply block max-w-full;
+  }
+}
+
+@layer components {
+  /*
+  ============================================
+  PRODUCT IMAGE LAYOUT FIXES
+  ============================================
+  */
+
+  /* 1. PRODUCT LISTING CARDS */
+  /* Remove strict height for product-card to respect aspect ratio in component */
+  .group > a > div > img,
+  [class*="card-product-image"] img,
+  [class*="ai-listing-card"] img {
+    @apply w-full h-full object-contain object-center;
+  }
+
+  [class*="product-card"] img {
+    @apply w-full h-full object-contain object-center;
+  }
+
+  /* 2. PRODUCT DETAIL PAGE (Main Image) */
+  .product-detail-image-container {
+    @apply aspect-square w-full;
+  }
+  
+  .product-detail-image-container img {
+    @apply w-full h-full object-contain object-center;
+  }
+}
+
+@layer utilities {
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
+  /* 
+    SAFEGUARD: Prevent accidental stretching
+  */
+  [class*="product"] img,
+  [class*="card"] img,
+  [class*="item"] img {
+    @apply object-contain;
+  }
+}
