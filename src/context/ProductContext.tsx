@@ -23,30 +23,46 @@ INITIAL_INDUSTRIES_DETAILED.forEach(ind => {
     });
 });
 
+// Helper to generate default SEO if missing
+const generateFallbackSeo = (product: Partial<Product>): SeoPageData => ({
+    "Page Type": "Product",
+    "Page Name": product.name || "Product",
+    "Full URL": `https://tapeindia.shop/product/${product.id}`,
+    "Title (≤60 chars)": `${product.name} | Tape India`,
+    "Meta Description (≤160 chars)": product.shortDescription || "",
+    "H1": product.name || "Product Detail",
+    "Primary Keywords": product.name || "",
+    "Secondary Keywords": product.category || "",
+    summary: product.shortDescription || "",
+    "CTA": "Request a Quote",
+    "Schema Type": "Product",
+    faqs: [],
+    "Product Schema (JSON-LD)": "{}",
+    "LocalBusiness Schema (JSON-LD)": "{}",
+    "FAQ Schema (JSON-LD)": "{}",
+    "Combined Schema (JSON-LD)": "{}"
+});
+
 // 2. Create the authoritative, combined product list.
 const INITIAL_PRODUCTS: Product[] = CONTENT_PRODUCTS.map(productContent => {
     const productSeo = seoData.find(seo => seo["Page Type"] === 'Product' && seo.id === productContent.id);
     
-    // Define a fallback SEO object for products that might not have a specific entry in seoData.
-    const fallbackSeo: SeoPageData = {
-        "Page Type": "Product", "Page Name": productContent.name, "Full URL": `https://tapeindia.shop/product/${productContent.id}`,
-        "Title (≤60 chars)": `${productContent.name} | Tape India`, "Meta Description (≤160 chars)": productContent.shortDescription,
-        "H1": productContent.name, "Primary Keywords": productContent.name, "Secondary Keywords": productContent.category,
-        summary: productContent.shortDescription, "CTA": "Request a Quote", "Schema Type": "Product", faqs: [],
-        "Product Schema (JSON-LD)": "{}", "LocalBusiness Schema (JSON-LD)": "{}", "FAQ Schema (JSON-LD)": "{}", "Combined Schema (JSON-LD)": "{}"
-    };
-
     // Combine implicit industries (from constants/INITIAL_INDUSTRIES_DETAILED) with explicit ones (from constants/PRODUCTS)
     const implicitIndustries = productIndustryMap.get(productContent.id) || [];
     const explicitIndustries = productContent.industries || [];
     const combinedIndustries = Array.from(new Set([...implicitIndustries, ...explicitIndustries]));
 
     // Combine content and SEO, then derive the guaranteed `image` property.
-    const merged = { ...productContent, seo: productSeo || fallbackSeo, industries: combinedIndustries };
+    // Ensure SEO is never undefined
+    const merged = { 
+        ...productContent, 
+        seo: productSeo || generateFallbackSeo(productContent), 
+        industries: combinedIndustries 
+    };
     
     return {
         ...merged,
-        image: merged.images?.[0]?.trim() || productContent.image || PLACEHOLDER_IMAGE // Use existing image if available
+        image: merged.images?.[0]?.trim() || productContent.image || PLACEHOLDER_IMAGE 
     };
 });
 
@@ -65,12 +81,9 @@ interface ProductProviderProps {
 
 export const ProductProvider: FC<ProductProviderProps> = ({ children }) => {
   // We keep the versioned key, but the useEffect below ensures data freshness
-  const [products, setProducts] = useLocalStorage<Product[]>('tapeindia_products_v21', INITIAL_PRODUCTS);
+  const [products, setProducts] = useLocalStorage<Product[]>('tapeindia_products_v22', INITIAL_PRODUCTS); // Bumped version to v22 to force refresh if needed, though merge logic handles it.
 
   // --- SMART MERGE & HYDRATION FIX ---
-  // This effect ensures that:
-  // 1. Data from 'constants.ts' (deployment) ALWAYS overrides stale data in localStorage.
-  // 2. Products created in the Admin Panel (not in constants.ts) are preserved.
   useEffect(() => {
       setProducts(currentProducts => {
           const stored = Array.isArray(currentProducts) ? currentProducts : [];
@@ -82,9 +95,19 @@ export const ProductProvider: FC<ProductProviderProps> = ({ children }) => {
           const mergedList = [...INITIAL_PRODUCTS];
 
           // Add products from storage ONLY if they don't exist in deployment data (User/Admin created)
+          // AND sanitize them to ensure they have required fields (like SEO)
           stored.forEach(p => {
               if (!deploymentMap.has(p.id)) {
-                  mergedList.push(p);
+                  // Sanitize stored product
+                  const sanitizedProduct = {
+                      ...p,
+                      seo: p.seo || generateFallbackSeo(p),
+                      image: p.image || PLACEHOLDER_IMAGE,
+                      features: p.features || [],
+                      uses: p.uses || [],
+                      industries: p.industries || []
+                  };
+                  mergedList.push(sanitizedProduct);
               }
           });
 
@@ -105,7 +128,8 @@ export const ProductProvider: FC<ProductProviderProps> = ({ children }) => {
       id: newId,
       image: (productData.images && productData.images.length > 0 && productData.images[0] !== '') 
              ? productData.images[0] 
-             : PLACEHOLDER_IMAGE
+             : PLACEHOLDER_IMAGE,
+      seo: productData.seo || generateFallbackSeo({ ...productData, id: newId })
     };
     
     setProducts(prev => {
@@ -115,14 +139,22 @@ export const ProductProvider: FC<ProductProviderProps> = ({ children }) => {
   }, [setProducts]);
 
   const updateProduct = useCallback((id: string, updatedProductData: Omit<Product, 'id' | 'image'>) => {
-    const finalProductData: Product = {
-        id,
-        ...updatedProductData,
-        image: (updatedProductData.images && updatedProductData.images.length > 0 && updatedProductData.images[0] !== '')
-               ? updatedProductData.images[0]
-               : PLACEHOLDER_IMAGE
-    };
-    setProducts(prev => (Array.isArray(prev) ? prev.map(p => (p.id === id ? finalProductData : p)) : [finalProductData]));
+    setProducts(prev => {
+        const current = Array.isArray(prev) ? prev : [];
+        return current.map(p => {
+            if (p.id === id) {
+                return {
+                    id,
+                    ...updatedProductData,
+                    image: (updatedProductData.images && updatedProductData.images.length > 0 && updatedProductData.images[0] !== '')
+                           ? updatedProductData.images[0]
+                           : PLACEHOLDER_IMAGE,
+                    seo: updatedProductData.seo || p.seo || generateFallbackSeo({ ...updatedProductData, id })
+                };
+            }
+            return p;
+        });
+    });
   }, [setProducts]);
 
   const deleteProduct = useCallback((id: string) => {

@@ -21,7 +21,14 @@ export default function HomePage() {
     const { categories } = useCategories();
     const { settings } = useSettings();
 
-    const homeData = useMemo(() => seoData.find(p => p["Page Name"] === "Home"), []);
+    const homeData = useMemo(() => {
+        const found = seoData.find(p => p["Page Name"] === "Home");
+        return found || {
+            H1: 'Industrial Tape Manufacturer & Bulk Supplier in India',
+            summary: "Leading B2B supplier of industrial tapes since 1957.",
+            CTA: 'Request a Quote'
+        };
+    }, []);
 
     const categoryMap = useMemo(() => {
         const map = new Map<string, string>();
@@ -30,8 +37,15 @@ export default function HomePage() {
     }, [categories]);
 
     const popularProducts = useMemo(() => {
+        // Fallback: if settings is missing popularProductIds or it's empty, grab the first 3 products
+        const targetIds = settings.popularProductIds?.length > 0 
+            ? settings.popularProductIds 
+            : products.slice(0, 3).map(p => p.id);
+
         const productMap = new Map(products.map(p => [p.id, p]));
-        return settings.popularProductIds.map(id => productMap.get(id)).filter((p): p is Product => Boolean(p));
+        return targetIds
+            .map(id => productMap.get(id))
+            .filter((p): p is Product => Boolean(p));
     }, [products, settings.popularProductIds]);
 
   return (
@@ -50,10 +64,10 @@ export default function HomePage() {
         <div className="relative container mx-auto px-5 lg:px-8 py-20 md:py-24 text-center">
           <AnimatedSection>
             <h1 className="font-extrabold mb-5 text-white">
-              {homeData?.H1 || 'Industrial Tape Manufacturer & Bulk Supplier in India'}
+              {homeData.H1}
             </h1>
             <p className="text-gray-200 mb-12 max-w-3xl mx-auto">
-              {homeData?.summary || "Leading B2B supplier of industrial tapes since 1957."}
+              {homeData.summary}
             </p>
             <div className="flex justify-center items-center flex-col sm:flex-row gap-4">
               <Link 
@@ -66,7 +80,7 @@ export default function HomePage() {
                 href="/request-quote" 
                 className="bg-transparent border-2 border-white text-white font-bold py-3 px-8 rounded-lg hover:bg-white hover:text-brand-blue-deep transition-all duration-300 w-full sm:w-auto text-lg"
               >
-                {homeData?.CTA || 'Request a Quote'}
+                {homeData.CTA}
               </Link>
             </div>
           </AnimatedSection>
@@ -111,11 +125,17 @@ export default function HomePage() {
                   <h2 className="font-extrabold mb-6">Our Popular Industrial Tapes</h2>
               </AnimatedSection>
               <AnimatedSection className="delay-200">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                      {popularProducts.slice(0, 6).map(product => (
-                          <ProductCard key={product.id} product={product} categoryName={categoryMap.get(product.category) || ''} />
-                      ))}
-                  </div>
+                  {popularProducts.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                          {popularProducts.slice(0, 6).map(product => (
+                              <ProductCard key={product.id} product={product} categoryName={categoryMap.get(product.category) || ''} />
+                          ))}
+                      </div>
+                  ) : (
+                      <div className="text-center text-gray-500 py-10">
+                          Loading products...
+                      </div>
+                  )}
               </AnimatedSection>
           </div>
       </section>

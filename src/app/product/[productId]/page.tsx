@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState, type FC, useEffect, type CSSProperties } from 'react';
@@ -9,8 +8,7 @@ import { useCategories } from '../../../context/CategoryContext';
 import { INDUSTRIES } from '../../../constants';
 import ProductCard from '../../../components/ProductCard';
 import CanonicalTag from '../../../components/CanonicalTag';
-import { ColorOption } from '../../../types';
-import { seoData } from '../../../data/seoData';
+import { ColorOption, SeoPageData } from '../../../types';
 import FaqAccordion from '../../../components/FaqAccordion';
 import NotFound from '../../not-found';
 
@@ -49,16 +47,14 @@ const ColorSwatch: FC<ColorSwatchProps> = ({ name, colors }) => {
 
 export default function ProductPage() {
     const params = useParams();
-    // Safely handle params type (string, string[], or undefined)
     const productId = Array.isArray(params?.productId) ? params?.productId[0] : params?.productId;
     
     const { products } = useProducts();
     
-    // Robust ID matching
     const product = useMemo(() => {
         if (!productId) return undefined;
         const targetId = productId.toLowerCase().trim();
-        return products.find(p => p.id.toLowerCase() === targetId);
+        return products.find(p => p.id && p.id.toLowerCase() === targetId);
     }, [products, productId]);
     
     useEffect(() => {
@@ -75,7 +71,6 @@ export default function ProductPage() {
         return INDUSTRIES.filter(ind => product.industries?.includes(ind.id));
     }, [product]);
     
-    // --- SMART RELATED PRODUCTS ALGORITHM (Weighted Scoring) ---
     const relatedProducts = useMemo(() => {
       if (!product) return [];
       
@@ -83,30 +78,20 @@ export default function ProductPage() {
       
       const scoredCandidates = candidates.map(p => {
           let score = 0;
-          
-          // 1. Category Match (Base relevance - 10 pts)
           if (p.category === product.category) score += 10;
-          
-          // 2. Industry Overlap (Context relevance - 5 pts per shared industry)
           const commonIndustries = p.industries?.filter(ind => product.industries?.includes(ind));
           if (commonIndustries && commonIndustries.length > 0) {
               score += (commonIndustries.length * 5);
           }
-
-          // 3. Name/Keyword Similarity (Specific relevance - 2 pts per shared significant word)
           const pTokens = p.name.toLowerCase().split(/[\s-]+/);
           const currentTokens = product.name.toLowerCase().split(/[\s-]+/);
-          // Filter only meaningful words > 3 chars
           const commonTokens = pTokens.filter(t => t.length > 3 && currentTokens.includes(t));
           score += (commonTokens.length * 2);
 
           return { product: p, score };
       });
 
-      // Sort by Score Descending
       scoredCandidates.sort((a, b) => b.score - a.score);
-
-      // Return top 3 highest scored products
       return scoredCandidates.slice(0, 3).map(item => item.product);
     }, [product, products]);
 
@@ -114,9 +99,12 @@ export default function ProductPage() {
         return <NotFound />;
     }
     
-    const productSeoData = product.seo;
-    const imageAltText = product.name;
-    const h1Text = productSeoData.H1;
+    // Safely access SEO data with fallbacks
+    const productSeoData = product.seo || ({} as Partial<SeoPageData>);
+    const imageAltText = product.name || 'Product Image';
+    const h1Text = productSeoData.H1 || product.name || 'Product Details';
+    const summaryText = productSeoData.summary || product.shortDescription || '';
+    const ctaText = productSeoData.CTA || 'Request a Quote';
 
     const hasOptions = (product.availableColors && product.availableColors.length > 0) || product.customizable;
     
@@ -174,7 +162,10 @@ export default function ProductPage() {
                              <div className="space-y-6 text-slate-700">
                                 <div className="prose prose-lg max-w-none text-base leading-relaxed text-slate-600">
                                    <h2 className="text-xl font-bold text-brand-blue-dark border-b border-gray-200 pb-2">Product Description</h2>
-                                   <p className="mt-4">{productSeoData.summary}</p>
+                                   <p className="mt-4">{summaryText}</p>
+                                   {product.description && product.description !== summaryText && (
+                                       <p className="mt-4">{product.description}</p>
+                                   )}
                                 </div>
 
                                 {product.features && product.features.length > 0 && (
@@ -240,7 +231,7 @@ export default function ProductPage() {
                                       href={`/request-quote?product=${product.id}`}
                                       className="inline-block bg-brand-yellow text-brand-blue-dark font-bold py-3 px-8 rounded-md text-base hover:bg-yellow-400 transition-colors transform hover:scale-105"
                                   >
-                                      {productSeoData.CTA}
+                                      {ctaText}
                                   </Link>
                                 </div>
                            </div>
