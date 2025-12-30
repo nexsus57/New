@@ -18,7 +18,7 @@ interface SearchResult extends Product {
 const MAX_RESULTS = 8;
 const MAX_RECENT_SEARCHES = 5;
 
-// Global reference for Orama DB to persist across re-renders without full rebuilds if unnecessary
+// Global reference for Orama DB
 let oramaDb: any = null;
 let lastProductCount = 0;
 
@@ -36,29 +36,26 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // --- 1. INITIALIZATION: Build Indexes ---
-
-  // Fuse.js Instance (Instant, Client-side, Fuzzy)
+  // Fuse.js Instance
   const fuse = useMemo(() => {
     return new Fuse(products, {
       keys: [
         { name: 'name', weight: 0.6 },
         { name: 'id', weight: 0.3 },
         { name: 'category', weight: 0.2 },
-        { name: 'tags', weight: 0.2 }, 
+        // { name: 'tags', weight: 0.2 }, // Tags property might not exist on Product type
         { name: 'industries', weight: 0.1 },
         { name: 'shortDescription', weight: 0.05 }
       ],
-      threshold: 0.3, // 0.0 = perfect match, 0.3 allows for typos
+      threshold: 0.3,
       ignoreLocation: true,
       includeScore: true,
     });
   }, [products]);
 
-  // Orama Instance (Async, Client-side, Semantic/Intent)
+  // Orama Instance
   useEffect(() => {
     const initOrama = async () => {
-      // Avoid rebuilding if product count hasn't changed (simple cache check)
       if (oramaDb && products.length === lastProductCount) return;
       
       const db = await create({
@@ -79,8 +76,7 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
         industries: p.industries || [],
       }));
 
-      // Fix: Cast insertMultiple to any to bypass strict type inference issues where TS expects never[]
-      await (insertMultiple as any)(db, records);
+      await insertMultiple(db, records);
       oramaDb = db;
       lastProductCount = products.length;
     };
@@ -88,7 +84,7 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
     initOrama();
   }, [products]);
 
-  // Load Recent Searches from LocalStorage
+  // Load Recent Searches
   useEffect(() => {
     try {
       const saved = localStorage.getItem('tapeindia_recent_searches');
@@ -100,8 +96,6 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
     }
   }, []);
 
-  // --- 2. HYBRID SEARCH LOGIC ---
-
   const performSearch = async (searchQuery: string) => {
     if (!searchQuery.trim()) {
       setResults([]);
@@ -112,8 +106,6 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
     let combinedResults: SearchResult[] = [];
     const seenIds = new Set<string>();
 
-    // A. PRIMARY: Fuse.js (Fast, Typo-tolerant)
-    // Always runs first. Ideal for "Kapton tape", "3M", "Floor marking".
     const fuseResult = fuse.search(q);
     const fuseMatches = fuseResult.map(res => {
       seenIds.add(res.item.id);
@@ -122,10 +114,6 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
 
     combinedResults = [...fuseMatches];
 
-    // B. SECONDARY: Orama (Intent/Description based)
-    // TRIGGER CONDITIONS:
-    // 1. Fuse returned very few results (< 3)
-    // 2. OR Query is long/descriptive (>= 4 words) implies a problem statement ("tape that withstands high heat")
     const isDescriptive = q.split(' ').length >= 4;
     const needsMoreResults = fuseMatches.length < 3;
 
@@ -133,16 +121,15 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
       try {
         const oramaResult = await oramaSearch(oramaDb, {
           term: q,
-          limit: 10, // Fetch extra to fill gaps
-          threshold: 0, // Orama handles stemming and BM25
+          limit: 10,
+          threshold: 0,
         });
 
         if (oramaResult.count > 0) {
-          // Map Orama IDs back to full Product objects
           const oramaMatches = oramaResult.hits
             .map(hit => products.find(p => p.id === hit.document.id))
-            .filter((p): p is Product => !!p && !seenIds.has(p.id)) // Deduplicate
-            .map(p => ({ ...p, source: 'orama' as const }));
+            .filter((p): p is Product => !!p && !seenIds.has(p.id))
+            .map(p => ({ ...p as Product, source: 'orama' as const }));
           
           combinedResults = [...combinedResults, ...oramaMatches];
         }
@@ -151,19 +138,15 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
       }
     }
 
-    // C. RANKING & LIMITING
     setResults(combinedResults.slice(0, MAX_RESULTS));
   };
 
-  // Debounce Input
   useEffect(() => {
     const timer = setTimeout(() => {
       performSearch(query);
-    }, 100); // Fast debounce
+    }, 100);
     return () => clearTimeout(timer);
   }, [query, fuse]);
-
-  // --- 3. UX HANDLERS ---
 
   const handleRecentSearchClick = (term: string) => {
     setQuery(term);
@@ -203,7 +186,6 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
       if (activeIndex >= 0 && results[activeIndex]) {
         handleSelection(results[activeIndex]);
       } else if (query) {
-        // Fallback: Go to listing page with query
         saveRecentSearch(query);
         setIsFocused(false);
         router.push(`/products?q=${encodeURIComponent(query)}`);
@@ -220,7 +202,6 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
     e.preventDefault();
     addToCart(product.id);
     
-    // Quick visual feedback
     const btn = e.currentTarget as HTMLButtonElement;
     const originalContent = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-check"></i>';
@@ -234,7 +215,6 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
     }, 1500);
   };
 
-  // Close on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
@@ -245,7 +225,6 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Popular Products (Fallback when no query)
   const popularProductsList = useMemo(() => {
     if (!settings.popularProductIds) return [];
     return products
@@ -271,11 +250,9 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
         />
       </div>
 
-      {/* DROPDOWN RESULTS */}
       {isFocused && (
         <div className="absolute top-full mt-2 w-full md:w-[120%] md:-left-[10%] bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-fade-in-up">
           
-          {/* STATE 1: NO QUERY - Show Recent & Popular */}
           {query.trim().length === 0 && (
             <div className="p-4">
               {recentSearches.length > 0 && (
@@ -316,7 +293,6 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
             </div>
           )}
 
-          {/* STATE 2: HAS QUERY & RESULTS */}
           {query.trim().length > 0 && results.length > 0 && (
             <ul className="divide-y divide-gray-50">
               {results.map((product, index) => (
@@ -328,7 +304,6 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
                     onClick={() => handleSelection(product)}
                     className="flex items-center p-3 cursor-pointer group"
                   >
-                    {/* Thumbnail */}
                     <div className="flex-shrink-0 w-10 h-10 bg-white rounded border border-gray-200 p-0.5 mr-3 overflow-hidden">
                         <img 
                             src={product.image} 
@@ -338,7 +313,6 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
                         />
                     </div>
 
-                    {/* Info */}
                     <div className="flex-grow min-w-0 mr-2">
                       <div className="flex items-center gap-2 mb-0.5">
                         <p className="text-sm font-bold text-gray-800 truncate group-hover:text-brand-accent transition-colors">
@@ -349,7 +323,6 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
                          <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 truncate max-w-[120px]">
                             {product.category.replace(/-/g, ' ')}
                          </span>
-                         {/* Show a relevant industry tag if available */}
                          {product.industries?.[0] && (
                              <span className="hidden sm:inline-block text-gray-400 truncate border-l border-gray-300 pl-2">
                                 {product.industries[0].replace(/-industry/g, '').replace(/-/g, ' ')}
@@ -358,7 +331,6 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
                       </div>
                     </div>
 
-                    {/* Action */}
                     <button
                         onClick={(e) => handleAddToQuote(e, product)}
                         className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 text-brand-accent hover:bg-brand-accent hover:text-white hover:border-brand-accent transition-all duration-200 shadow-sm z-10"
@@ -383,7 +355,6 @@ const SearchBar = ({ onResultClick }: { onResultClick?: () => void }) => {
             </ul>
           )}
 
-          {/* STATE 3: NO RESULTS */}
           {query.trim().length > 0 && results.length === 0 && (
             <div className="p-6 text-center">
                 <div className="inline-flex items-center justify-center w-12 h-12 bg-gray-100 rounded-full mb-3 text-gray-400">

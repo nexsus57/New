@@ -17,13 +17,21 @@ function getStorageValue<T>(key: string, defaultValue: T): T {
 }
 
 export const useLocalStorage = <T,>(key: string, defaultValue: T): [T, Dispatch<SetStateAction<T>>] => {
-  const [value, setValue] = useState<T>(() => {
-    return getStorageValue(key, defaultValue);
-  });
+  // Initialize with defaultValue to match server-side rendering
+  const [value, setValue] = useState<T>(defaultValue);
 
+  // Sync with localStorage on client mount
+  useEffect(() => {
+    const storedValue = getStorageValue(key, defaultValue);
+    setValue(storedValue);
+  }, [key, defaultValue]);
+
+  // Update localStorage when value changes
   useEffect(() => {
     try {
-      localStorage.setItem(key, JSON.stringify(value));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(key, JSON.stringify(value));
+      }
     } catch (error) {
       console.error('Could not save to localStorage', error);
     }
