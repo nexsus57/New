@@ -20,7 +20,7 @@ const TrafficChart = () => {
         const saved = localStorage.getItem(storageKey);
         const rawData = saved ? JSON.parse(saved) : {};
         
-        const last7Days = [];
+        const last7Days: { date: string; day: string; count: number }[] = [];
         const today = new Date();
         let maxCount = 0;
 
