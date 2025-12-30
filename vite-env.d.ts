@@ -1,6 +1,3 @@
-/// <reference types="react" />
-/// <reference types="react-dom" />
-
 // The reference to "vite/client" was removed as it could not be resolved in the environment.
 // To fix the related error "Property 'env' does not exist on type 'ImportMeta'",
 // we provide a manual declaration for Vite's environment variables.
