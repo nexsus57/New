@@ -94,7 +94,7 @@ const AdminBlogEditPage = () => {
     };
 
     const pageTitle = isEditing ? 'Edit Article' : 'Add New Article';
-    const allCategories = [...new Set(articles.map(a => a.category))];
+    const allCategories = Array.from(new Set(articles.map(a => a.category)));
 
     return (
         <div>

@@ -1,3 +1,4 @@
+
 import { useMemo } from 'react';
 import { PRODUCTS } from '../../constants';
 import { ALL_CATEGORIES } from '../../data/seoData';
@@ -8,7 +9,7 @@ const AdminCategoriesPage = () => {
         // Create a map of all known categories from the definitive source for easy lookup of details
         const categoryDetailsMap = new Map(ALL_CATEGORIES.map(c => [c.id, c]));
         // Get unique category IDs that are actually used by products
-        const uniqueCategoryIdsInUse = [...new Set(PRODUCTS.map(p => p.category))];
+        const uniqueCategoryIdsInUse = Array.from(new Set(PRODUCTS.map(p => p.category)));
         // Create the final list of categories that have products, enriching them with details
         return uniqueCategoryIdsInUse.map(id => {
             const details = categoryDetailsMap.get(id);
