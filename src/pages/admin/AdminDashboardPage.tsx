@@ -20,6 +20,7 @@ const TrafficChart = () => {
         const saved = localStorage.getItem(storageKey);
         const rawData = saved ? JSON.parse(saved) : {};
         
+        // FIX: Explicitly type the array to prevent 'never[]' inference
         const last7Days: { date: string; day: string; count: number }[] = [];
         const today = new Date();
         let maxCount = 0;
