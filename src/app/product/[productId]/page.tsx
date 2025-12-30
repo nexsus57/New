@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState, type FC, useEffect, type CSSProperties } from 'react';
@@ -48,13 +49,22 @@ const ColorSwatch: FC<ColorSwatchProps> = ({ name, colors }) => {
 
 export default function ProductPage() {
     const params = useParams();
-    const productId = params?.productId as string;
+    // Safely handle params type (string, string[], or undefined)
+    const productId = Array.isArray(params?.productId) ? params?.productId[0] : params?.productId;
     
     const { products } = useProducts();
-    const product = products.find(p => p.id.toLowerCase().replace(/[^a-z0-9-]+/g, '') === productId);
+    
+    // Robust ID matching
+    const product = useMemo(() => {
+        if (!productId) return undefined;
+        const targetId = productId.toLowerCase().trim();
+        return products.find(p => p.id.toLowerCase() === targetId);
+    }, [products, productId]);
     
     useEffect(() => {
-        window.scrollTo(0, 0);
+        if (typeof window !== 'undefined') {
+            window.scrollTo(0, 0);
+        }
     }, [productId]);
 
     const { categories } = useCategories();
@@ -100,7 +110,7 @@ export default function ProductPage() {
       return scoredCandidates.slice(0, 3).map(item => item.product);
     }, [product, products]);
 
-    if (!product) {
+    if (!productId || !product) {
         return <NotFound />;
     }
     

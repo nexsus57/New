@@ -1,3 +1,4 @@
+
 import { createContext, useContext, ReactNode, useCallback, FC, useMemo, useEffect } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import type { BlogArticle, SeoPageData } from '../types';
@@ -19,15 +20,31 @@ interface BlogProviderProps {
 export const BlogProvider: FC<BlogProviderProps> = ({ children }) => {
   const [storedArticles, setArticles] = useLocalStorage<BlogArticle[]>('tapeindia_blog_v7', INITIAL_ARTICLES);
 
+  // --- SMART MERGE LOGIC ---
   useEffect(() => {
-    // Data validation: If blog data is corrupted, empty, or not an array, reset to initial data.
-    if (!Array.isArray(storedArticles) || (storedArticles.length === 0 && INITIAL_ARTICLES.length > 0)) {
-      setArticles(INITIAL_ARTICLES);
-    }
-  }, [storedArticles, setArticles]);
+      setArticles(currentArticles => {
+          const stored = Array.isArray(currentArticles) ? currentArticles : [];
+          const deploymentMap = new Map(INITIAL_ARTICLES.map(a => [a.id, a]));
+          
+          // Start with fresh deployment data
+          const mergedList = [...INITIAL_ARTICLES];
+
+          // Preserve locally created articles
+          stored.forEach(a => {
+              if (!deploymentMap.has(a.id)) {
+                  mergedList.push(a);
+              }
+          });
+
+          if (JSON.stringify(mergedList) !== JSON.stringify(stored)) {
+              return mergedList;
+          }
+          return stored;
+      });
+  }, [setArticles]);
 
   const articles = useMemo(() => {
-    const validArticles = Array.isArray(storedArticles) ? storedArticles : INITIAL_ARTICLES;
+    const validArticles = Array.isArray(storedArticles) && storedArticles.length > 0 ? storedArticles : INITIAL_ARTICLES;
     // Always return a new sorted array to prevent state mutation and ensure consistent order.
     return [...validArticles].sort((a, b) => new Date(b.datePublished).getTime() - new Date(a.datePublished).getTime());
   }, [storedArticles]);

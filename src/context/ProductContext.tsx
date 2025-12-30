@@ -64,41 +64,36 @@ interface ProductProviderProps {
 }
 
 export const ProductProvider: FC<ProductProviderProps> = ({ children }) => {
-  // Updated key to v21 to force a refresh of the data structure in local storage for users
-  // This version bump fixes broken images and ensures industry mappings are fresh.
+  // We keep the versioned key, but the useEffect below ensures data freshness
   const [products, setProducts] = useLocalStorage<Product[]>('tapeindia_products_v21', INITIAL_PRODUCTS);
 
-  useEffect(() => {
-    // Basic validation to reset if data is weird
-    if (!Array.isArray(products) || (products.length === 0 && INITIAL_PRODUCTS.length > 0)) {
-      setProducts(INITIAL_PRODUCTS);
-    }
-  }, [products, setProducts]);
-
-  // SELF-HEALING EFFECT: Force sync industry mappings
-  // This ensures that if we update constants.ts to assign products to industries,
-  // the user's LocalStorage data gets updated automatically.
+  // --- SMART MERGE & HYDRATION FIX ---
+  // This effect ensures that:
+  // 1. Data from 'constants.ts' (deployment) ALWAYS overrides stale data in localStorage.
+  // 2. Products created in the Admin Panel (not in constants.ts) are preserved.
   useEffect(() => {
       setProducts(currentProducts => {
-          if (!Array.isArray(currentProducts)) return INITIAL_PRODUCTS;
+          const stored = Array.isArray(currentProducts) ? currentProducts : [];
+          
+          // Map of deployed products for quick lookup
+          const deploymentMap = new Map(INITIAL_PRODUCTS.map(p => [p.id, p]));
+          
+          // Start with the fresh deployment data (Authoritative source)
+          const mergedList = [...INITIAL_PRODUCTS];
 
-          let hasChanges = false;
-          const updatedProducts = currentProducts.map(p => {
-              const implicitIndustries = productIndustryMap.get(p.id) || [];
-              const currentIndustries = p.industries || [];
-              
-              // Create a set of all industries this product SHOULD have
-              const targetIndustriesSet = new Set([...currentIndustries, ...implicitIndustries]);
-              
-              // If the count differs, it means we are missing some tags
-              if (targetIndustriesSet.size !== currentIndustries.length) {
-                  hasChanges = true;
-                  return { ...p, industries: Array.from(targetIndustriesSet) };
+          // Add products from storage ONLY if they don't exist in deployment data (User/Admin created)
+          stored.forEach(p => {
+              if (!deploymentMap.has(p.id)) {
+                  mergedList.push(p);
               }
-              return p;
           });
 
-          return hasChanges ? updatedProducts : currentProducts;
+          // Check if anything actually changed to prevent infinite re-renders
+          if (JSON.stringify(mergedList) !== JSON.stringify(stored)) {
+              return mergedList;
+          }
+          
+          return stored;
       });
   }, [setProducts]);
 
@@ -108,7 +103,6 @@ export const ProductProvider: FC<ProductProviderProps> = ({ children }) => {
     const newProduct: Product = {
       ...productData,
       id: newId,
-      // Automatically derive the main image from the images array if present
       image: (productData.images && productData.images.length > 0 && productData.images[0] !== '') 
              ? productData.images[0] 
              : PLACEHOLDER_IMAGE
@@ -116,7 +110,7 @@ export const ProductProvider: FC<ProductProviderProps> = ({ children }) => {
     
     setProducts(prev => {
         const current = Array.isArray(prev) ? prev : [];
-        return [newProduct, ...current]; // Add new product to the top
+        return [newProduct, ...current]; 
     });
   }, [setProducts]);
 
@@ -124,7 +118,6 @@ export const ProductProvider: FC<ProductProviderProps> = ({ children }) => {
     const finalProductData: Product = {
         id,
         ...updatedProductData,
-        // Automatically derive the main image from the images array if present
         image: (updatedProductData.images && updatedProductData.images.length > 0 && updatedProductData.images[0] !== '')
                ? updatedProductData.images[0]
                : PLACEHOLDER_IMAGE
@@ -136,7 +129,8 @@ export const ProductProvider: FC<ProductProviderProps> = ({ children }) => {
     setProducts(prev => (Array.isArray(prev) ? prev.filter(p => p.id !== id) : []));
   }, [setProducts]);
 
-  const validProducts = Array.isArray(products) ? products : INITIAL_PRODUCTS;
+  // Fail-safe: ensure we never render with empty data if initialization failed
+  const validProducts = (Array.isArray(products) && products.length > 0) ? products : INITIAL_PRODUCTS;
 
   const value = { products: validProducts, addProduct, updateProduct, deleteProduct };
 
