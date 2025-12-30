@@ -16,6 +16,8 @@ const AnalyticsContent: FC = () => {
     const searchParams = useSearchParams();
 
     useEffect(() => {
+        if (!pathname) return;
+
         // 1. Google Tag Manager / Analytics Event
         // Fix: Use optional chaining to safely get string or empty
         const query = searchParams?.toString();

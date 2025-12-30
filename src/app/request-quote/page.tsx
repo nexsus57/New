@@ -28,10 +28,12 @@ function RequestQuoteContent() {
             addToCart(productId);
             
             // Construct new URL without the product param
-            // Pass the current params safely
             const newParams = new URLSearchParams(searchParams.toString());
             newParams.delete('product');
-            router.replace(`${pathname}?${newParams.toString()}`);
+            
+            // Safe fallback if pathname is null (unlikely in this context but satisfies TS)
+            const currentPath = pathname || '/request-quote';
+            router.replace(`${currentPath}?${newParams.toString()}`);
         }
     }, [searchParams, addToCart, router, pathname]);
 

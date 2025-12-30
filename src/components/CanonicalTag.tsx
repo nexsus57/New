@@ -16,6 +16,9 @@ const CanonicalTag = ({ stripQuery = false }: CanonicalTagProps) => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   
+  // Guard: if pathname is null, we can't generate a canonical URL.
+  if (!pathname) return null;
+
   let path = pathname;
   
   // Reconstruct path with query if needed
