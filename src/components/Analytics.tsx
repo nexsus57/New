@@ -17,7 +17,9 @@ const AnalyticsContent: FC = () => {
 
     useEffect(() => {
         // 1. Google Tag Manager / Analytics Event
-        const url = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+        // Fix: Use optional chaining to safely get string or empty
+        const query = searchParams?.toString();
+        const url = `${pathname}${query ? `?${query}` : ''}`;
         
         const timerId = setTimeout(() => {
             window.dataLayer = window.dataLayer || [];

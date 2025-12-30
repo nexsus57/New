@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
@@ -19,12 +20,16 @@ function RequestQuoteContent() {
     const [redirectUrl, setRedirectUrl] = useState('');
 
     useEffect(() => {
+        // Fix: Guard against null searchParams
+        if (!searchParams) return;
+
         const productId = searchParams.get('product');
         if (productId) {
             addToCart(productId);
             
             // Construct new URL without the product param
-            const newParams = new URLSearchParams(searchParams);
+            // Pass the current params safely
+            const newParams = new URLSearchParams(searchParams.toString());
             newParams.delete('product');
             router.replace(`${pathname}?${newParams.toString()}`);
         }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useSearchParams } from 'next/navigation';
@@ -45,9 +46,10 @@ function ProductsListContent() {
       pageContent, 
       pageH1,
     } = useMemo(() => {
-        const industryId = searchParams.get('industry');
-        const categoryId = searchParams.get('category');
-        const searchQuery = searchParams.get('q');
+        // Fix: Use optional chaining to handle null searchParams
+        const industryId = searchParams?.get('industry');
+        const categoryId = searchParams?.get('category');
+        const searchQuery = searchParams?.get('q');
         
         let prods = products;
         let pageData: Partial<SeoPageData> | undefined;
@@ -98,8 +100,9 @@ function ProductsListContent() {
         };
     }, [searchParams, products, categories]);
 
-    const activeCategory = searchParams.get('category');
-    const activeIndustry = searchParams.get('industry');
+    // Fix: Use optional chaining here as well
+    const activeCategory = searchParams?.get('category');
+    const activeIndustry = searchParams?.get('industry');
 
     return (
         <main className="bg-gray-50 min-h-screen">

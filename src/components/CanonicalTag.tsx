@@ -20,7 +20,8 @@ const CanonicalTag = ({ stripQuery = false }: CanonicalTagProps) => {
   
   // Reconstruct path with query if needed
   if (!stripQuery) {
-      const queryString = searchParams.toString();
+      // Fix: optional chaining for searchParams
+      const queryString = searchParams?.toString();
       if (queryString) {
           path += `?${queryString}`;
       }
