@@ -1,273 +1,96 @@
 
-'use client';
-
-import { useMemo, useState, type FC, useEffect, type CSSProperties } from 'react';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
-import { useProducts } from '../../../context/ProductContext';
-import { useCategories } from '../../../context/CategoryContext';
-import { INDUSTRIES } from '../../../constants';
-import ProductCard from '../../../components/ProductCard';
-import CanonicalTag from '../../../components/CanonicalTag';
-import { ColorOption, SeoPageData } from '../../../types';
-import FaqAccordion from '../../../components/FaqAccordion';
+import { Metadata } from 'next';
+import { PRODUCTS } from '../../../constants';
+import { seoData } from '../../../data/seoData';
+import ProductDetailView from '../../../components/views/ProductDetailView';
 import NotFound from '../../not-found';
-import MetaTags from '../../../components/MetaTags';
 
-interface ColorSwatchProps {
-    name: string;
-    colors: string[];
-}
-
-const ColorSwatch: FC<ColorSwatchProps> = ({ name, colors }) => {
-    let swatchClasses = "w-6 h-6 rounded-full border border-gray-300 flex-shrink-0 shadow-inner";
-    let swatchStyle: CSSProperties = {};
-
-    if (colors[0] === 'transparent') {
-        swatchClasses += " bg-white";
-        swatchStyle = {
-             backgroundImage: `url("data:image/svg+xml,%3csvg width='10' height='10' viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='5' height='5' x='0' y='0' fill='rgb(229, 231, 235)'/%3e%3crect width='5' height='5' x='5' y='5' fill='rgb(229, 231, 235)'/%3e%3c/svg%3e")`,
-        }
-    } else if (colors.length > 1) {
-        swatchStyle = { background: `linear-gradient(135deg, ${colors[0]} 50%, ${colors[1]} 50%)` };
-    } else {
-        swatchStyle = { backgroundColor: colors[0] };
-    }
-
-    return (
-        <div className="flex items-center gap-2">
-            <div
-                className={swatchClasses}
-                style={swatchStyle}
-                title={name}
-            ></div>
-            <span className="text-gray-600 text-sm">{name}</span>
-        </div>
-    );
+type Props = {
+  params: { productId: string };
+  searchParams: { [key: string]: string | string[] | undefined };
 };
 
+export async function generateMetadata(
+  { params }: Props
+): Promise<Metadata> {
+  const id = params.productId;
+  
+  // 1. Try to find explicit SEO data first
+  let seoItem = seoData.find(p => p.id === id && p["Page Type"] === "Product");
+  
+  // 2. If not found in SEO data, find in PRODUCTS constant
+  const productContent = PRODUCTS.find(p => p.id === id);
 
-export default function ProductPage() {
-    const params = useParams();
-    const productId = Array.isArray(params?.productId) ? params?.productId[0] : params?.productId;
-    
-    const { products } = useProducts();
-    
-    const product = useMemo(() => {
-        if (!productId) return undefined;
-        const targetId = productId.toLowerCase().trim();
-        return products.find(p => p.id && p.id.toLowerCase() === targetId);
-    }, [products, productId]);
-    
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            window.scrollTo(0, 0);
-        }
-    }, [productId]);
+  if (!seoItem && !productContent) {
+    return {
+      title: 'Product Not Found | Tape India',
+      description: 'The requested product could not be found.',
+    };
+  }
 
-    const { categories } = useCategories();
-    const category = useMemo(() => categories.find(c => c.id === product?.category), [categories, product]);
-    
-    const relatedIndustries = useMemo(() => {
-        if (!product?.industries) return [];
-        return INDUSTRIES.filter(ind => product.industries?.includes(ind.id));
-    }, [product]);
-    
-    const relatedProducts = useMemo(() => {
-      if (!product) return [];
-      
-      const candidates = products.filter(p => p.id !== product.id);
-      
-      const scoredCandidates = candidates.map(p => {
-          let score = 0;
-          if (p.category === product.category) score += 10;
-          const commonIndustries = p.industries?.filter(ind => product.industries?.includes(ind));
-          if (commonIndustries && commonIndustries.length > 0) {
-              score += (commonIndustries.length * 5);
-          }
-          const pTokens = p.name.toLowerCase().split(/[\s-]+/);
-          const currentTokens = product.name.toLowerCase().split(/[\s-]+/);
-          const commonTokens = pTokens.filter(t => t.length > 3 && currentTokens.includes(t));
-          score += (commonTokens.length * 2);
+  // 3. Fallback logic: If SEO data is missing, generate it from product content
+  if (!seoItem && productContent) {
+      seoItem = {
+        "Page Type": "Product",
+        "Page Name": productContent.name,
+        "Full URL": `https://tapeindia.shop/product/${productContent.id}`,
+        "Title (≤60 chars)": `${productContent.name} | Tape India`,
+        "Meta Description (≤160 chars)": productContent.shortDescription || `Buy ${productContent.name} from Tape India.`,
+        "H1": productContent.name,
+        "Primary Keywords": productContent.name,
+        "Secondary Keywords": productContent.category,
+        summary: productContent.shortDescription,
+        "CTA": "Request a Quote",
+        "Schema Type": "Product",
+        faqs: [],
+        "Product Schema (JSON-LD)": "{}",
+        "LocalBusiness Schema (JSON-LD)": "{}",
+        "FAQ Schema (JSON-LD)": "{}",
+        "Combined Schema (JSON-LD)": "{}"
+      };
+  }
 
-          return { product: p, score };
-      });
+  return {
+    title: seoItem?.["Title (≤60 chars)"],
+    description: seoItem?.["Meta Description (≤160 chars)"],
+    openGraph: {
+      title: seoItem?.["Title (≤60 chars)"],
+      description: seoItem?.["Meta Description (≤160 chars)"],
+      url: seoItem?.["Full URL"],
+      images: productContent?.image ? [{ url: productContent.image }] : [],
+    },
+  };
+}
 
-      scoredCandidates.sort((a, b) => b.score - a.score);
-      return scoredCandidates.slice(0, 3).map(item => item.product);
-    }, [product, products]);
+export default function ProductPage({ params }: Props) {
+  const id = params.productId;
+  const productContent = PRODUCTS.find(p => p.id === id);
+  const seoItem = seoData.find(p => p.id === id && p["Page Type"] === "Product");
 
-    if (!productId || !product) {
-        return <NotFound />;
-    }
-    
-    // Safely access SEO data with fallbacks
-    const productSeoData = product.seo || ({} as Partial<SeoPageData>);
-    const imageAltText = product.name || 'Product Image';
-    const h1Text = productSeoData.H1 || product.name || 'Product Details';
-    const summaryText = productSeoData.summary || product.shortDescription || '';
-    const ctaText = productSeoData.CTA || 'Request a Quote';
+  if (!productContent && !seoItem) {
+      return <NotFound />;
+  }
 
-    const hasOptions = (product.availableColors && product.availableColors.length > 0) || product.customizable;
-    
-    return (
-        <>
-            <CanonicalTag />
-            <MetaTags pageData={productSeoData} />
-            
-            <main className="py-12 md:py-16 bg-gray-50">
-                <div className="container mx-auto px-5 lg:px-8">
-                    {/* Breadcrumbs */}
-                    <nav className="text-sm font-semibold mb-6" aria-label="Breadcrumb">
-                        <ol className="list-none p-0 inline-flex items-center flex-wrap">
-                            <li className="flex items-center">
-                                <Link href="/" className="text-gray-500 hover:text-brand-blue">Home</Link>
-                                <i className="fas fa-chevron-right mx-2 text-gray-400 text-xs"></i>
-                            </li>
-                            <li className="flex items-center">
-                                <Link href="/products" className="text-gray-500 hover:text-brand-blue">Products</Link>
-                                <i className="fas fa-chevron-right mx-2 text-gray-400 text-xs"></i>
-                            </li>
-                                {category && (
-                                <li className="flex items-center">
-                                    <Link href={`/products?category=${category.id}`} className="text-gray-500 hover:text-brand-blue">{category.name}</Link>
-                                    <i className="fas fa-chevron-right mx-2 text-gray-400 text-xs"></i>
-                                </li>
-                            )}
-                            <li className="text-brand-blue-dark truncate max-w-[200px]" aria-current="page">{product.name}</li>
-                        </ol>
-                    </nav>
+  // Determine Schema source
+  const jsonLdString = seoItem?.["Combined Schema (JSON-LD)"];
+  let jsonLd = null;
+  if (jsonLdString && jsonLdString !== "{}" && jsonLdString !== "null") {
+      try {
+          jsonLd = JSON.parse(jsonLdString);
+      } catch (e) {
+          // ignore parsing error
+      }
+  }
 
-                    <div className="bg-white p-6 md:p-8 rounded-xl shadow-md grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
-                        {/* Left Column: Product Image */}
-                        <div className="lg:col-span-2">
-                             <div className="sticky top-24 self-start">
-                                <div 
-                                    className="product-detail-image-container relative bg-white border border-gray-200 rounded-lg p-4"
-                                >
-                                    <img
-                                        src={product.image}
-                                        alt={imageAltText}
-                                        className="rounded-lg"
-                                        crossOrigin="anonymous"
-                                        onError={(e) => (e.currentTarget.src = "https://file.garden/aIULwzQ_QkPKQcGw/tapeindialogo.png")}
-                                        width="300"
-                                        height="300"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Right Column: Product Details */}
-                        <div className="lg:col-span-3">
-                            <h1 className="font-extrabold text-brand-blue-dark mb-3 leading-tight">{h1Text}</h1>
-                            
-                             <div className="space-y-6 text-slate-700">
-                                <div className="prose prose-lg max-w-none text-base leading-relaxed text-slate-600">
-                                   <h2 className="text-xl font-bold text-brand-blue-dark border-b border-gray-200 pb-2">Product Description</h2>
-                                   <p className="mt-4">{summaryText}</p>
-                                   {product.description && product.description !== summaryText && (
-                                       <p className="mt-4">{product.description}</p>
-                                   )}
-                                </div>
-
-                                {product.features && product.features.length > 0 && (
-                                    <div>
-                                        <h3 className="text-lg font-bold text-brand-blue-dark mb-2">Key Features</h3>
-                                        <ul className="list-disc list-outside pl-5 space-y-1 text-base">
-                                            {product.features.map((feature, index) => <li key={`feat-${index}`}>{feature}</li>)}
-                                        </ul>
-                                    </div>
-                                )}
-                                
-                                {product.uses && product.uses.length > 0 && (
-                                    <div>
-                                        <h3 className="text-lg font-bold text-brand-blue-dark mb-2">Common Applications</h3>
-                                        <ul className="list-disc list-outside pl-5 space-y-1 text-base">
-                                            {product.uses.map((use, index) => <li key={`use-${index}`}>{use}</li>)}
-                                        </ul>
-                                    </div>
-                                )}
-
-                                {hasOptions && (
-                                    <div>
-                                        <h3 className="text-lg font-bold text-brand-blue-dark mb-3">Options & Customization</h3>
-                                        <div className="space-y-4">
-                                            {product.availableColors && product.availableColors.length > 0 && (
-                                                <div>
-                                                    <h4 className="font-semibold text-base mb-2 text-gray-800">Available Colors:</h4>
-                                                    <div className="flex flex-wrap gap-x-4 gap-y-2">
-                                                        {product.availableColors.map((opt: ColorOption) => <ColorSwatch key={opt.name} {...opt} />)}
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {product.customizable && (
-                                                <div>
-                                                    <h4 className="font-semibold text-base mb-2 text-gray-800">Custom Sizes:</h4>
-                                                    <p className="text-base text-gray-700">This product can be slit to custom widths or die-cut. Contact us with your requirements.</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {relatedIndustries.length > 0 && (
-                                    <div className="hidden lg:block">
-                                        <h3 className="text-lg font-bold text-brand-blue-dark mb-3">Relevant Industries</h3>
-                                        <div className="flex flex-wrap gap-2">
-                                            {relatedIndustries.map(industry => (
-                                                <Link key={industry.id} href={`/products?industry=${industry.id}`} className="bg-slate-100 text-slate-700 font-semibold px-3 py-1.5 rounded-md hover:bg-brand-accent hover:text-white transition-colors text-sm">
-                                                    {industry.name}
-                                                </Link>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Request Quote Section */}
-                                <div className="!mt-10 pt-6 border-t border-gray-200">
-                                  <h3 className="text-xl font-bold text-brand-blue-dark">Get a Quote for {product.name}</h3>
-                                  <p className="text-gray-600 my-3">
-                                      For competitive B2B pricing, custom sizes, and Pan-India delivery, contact our team for a personalized quote.
-                                  </p>
-                                  <Link
-                                      href={`/request-quote?product=${product.id}`}
-                                      className="inline-block bg-brand-yellow text-brand-blue-dark font-bold py-3 px-8 rounded-md text-base hover:bg-yellow-400 transition-colors transform hover:scale-105"
-                                  >
-                                      {ctaText}
-                                  </Link>
-                                </div>
-                           </div>
-                        </div>
-                    </div>
-
-                    {/* FAQ Section */}
-                    {productSeoData.faqs && productSeoData.faqs.length > 0 && (
-                        <div className="bg-white p-6 md:p-8 rounded-xl shadow-md mt-8">
-                           <h2 className="text-2xl font-bold text-brand-blue-dark mb-6">Frequently Asked Questions</h2>
-                           <div className="space-y-4">
-                               {productSeoData.faqs.map((faq, index) => (
-                                   <FaqAccordion key={index} question={faq.name} answer={faq.acceptedAnswer.text} />
-                               ))}
-                           </div>
-                        </div>
-                    )}
-                </div>
-            </main>
-
-            {/* Related Products Section */}
-            {relatedProducts.length > 0 && (
-                <section className="py-16 md:py-24 bg-brand-gray">
-                    <div className="container mx-auto px-5 lg:px-8">
-                        <h2 className="text-3xl font-bold mb-12 text-center text-brand-blue-dark">You Might Also Need</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {relatedProducts.map(p => (
-                               <ProductCard key={p.id} product={p} categoryName={category?.name || ''} />
-                            ))}
-                        </div>
-                    </div>
-                </section>
-            )}
-        </>
-    );
+  return (
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      <ProductDetailView productId={id} />
+    </>
+  );
 }
