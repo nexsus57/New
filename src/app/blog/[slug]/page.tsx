@@ -1,5 +1,4 @@
 
-import { Metadata } from 'next';
 import { ALL_BLOG_ARTICLES } from '../../../data/seoData';
 import BlogPostView from '../../../components/views/BlogPostView';
 import NotFound from '../../not-found';
@@ -15,7 +14,7 @@ export async function generateStaticParams() {
   }));
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params }: Props) {
   const article = ALL_BLOG_ARTICLES.find(a => a.id === params.slug);
 
   if (!article) {

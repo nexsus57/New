@@ -1,5 +1,4 @@
 
-import { Metadata } from 'next';
 import { PRODUCTS } from '../../../constants';
 import { seoData } from '../../../data/seoData';
 import ProductDetailView from '../../../components/views/ProductDetailView';
@@ -19,7 +18,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata(
   { params }: Props
-): Promise<Metadata> {
+) {
   const id = params.productId;
   
   // 1. Try to find explicit SEO data first

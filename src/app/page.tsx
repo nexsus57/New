@@ -1,9 +1,8 @@
 
-import { Metadata } from 'next';
 import { seoData } from '../data/seoData';
 import HomeView from '../components/views/HomeView';
 
-export const metadata: Metadata = {
+export const metadata = {
   title: seoData.find(p => p["Page Name"] === "Home")?.["Title (≤60 chars)"] || "Tape India - Industrial Adhesive Tapes Manufacturer",
   description: seoData.find(p => p["Page Name"] === "Home")?.["Meta Description (≤160 chars)"] || "Leading manufacturer and supplier of over 200 industrial adhesive tapes. Serving industries from automotive to packaging since 1957.",
   openGraph: {
