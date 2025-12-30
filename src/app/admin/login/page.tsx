@@ -2,8 +2,8 @@
 'use client';
 
 import React from 'react';
-import AdminLoginPage from '@/pages/admin/AdminLoginPage';
+import AdminLoginView from '@/components/admin/views/AdminLoginView';
 
 export default function LoginPage() {
-  return <AdminLoginPage />;
+  return <AdminLoginView />;
 }

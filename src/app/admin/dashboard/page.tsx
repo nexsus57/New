@@ -1,7 +1,8 @@
+
 'use client';
 
-import AdminDashboardPage from '../../../pages/admin/AdminDashboardPage';
+import AdminDashboardView from '@/components/admin/views/AdminDashboardView';
 
 export default function Dashboard() {
-  return <AdminDashboardPage />;
+  return <AdminDashboardView />;
 }
