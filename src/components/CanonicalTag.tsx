@@ -3,6 +3,7 @@
 
 import { Helmet } from 'react-helmet-async';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
 interface CanonicalTagProps {
     /**
@@ -12,7 +13,7 @@ interface CanonicalTagProps {
     stripQuery?: boolean;
 }
 
-const CanonicalTag = ({ stripQuery = false }: CanonicalTagProps) => {
+const CanonicalTagContent = ({ stripQuery = false }: CanonicalTagProps) => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   
@@ -46,6 +47,14 @@ const CanonicalTag = ({ stripQuery = false }: CanonicalTagProps) => {
     <Helmet>
       <link rel="canonical" href={canonicalUrl} />
     </Helmet>
+  );
+};
+
+const CanonicalTag = (props: CanonicalTagProps) => {
+  return (
+    <Suspense fallback={null}>
+      <CanonicalTagContent {...props} />
+    </Suspense>
   );
 };
 
