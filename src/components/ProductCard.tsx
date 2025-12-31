@@ -35,7 +35,7 @@ const ProductCard: FC<ProductCardProps> = ({ product, categoryName }) => {
       <div className="flex flex-col h-full"> 
         
         {/* Image Section */}
-        <div className="relative overflow-hidden bg-gray-50 p-4 aspect-[4/3] flex items-center justify-center">
+        <div className="relative overflow-hidden bg-gray-50 p-2 md:p-4 aspect-[4/3] flex items-center justify-center">
           <img
             src={product.image}
             alt={product.name}
@@ -52,27 +52,27 @@ const ProductCard: FC<ProductCardProps> = ({ product, categoryName }) => {
           </div>
         </div>
 
-        {/* Text Section */}
-        <div className="p-5 flex flex-col flex-grow">
-          <p className="text-xs font-bold text-brand-accent uppercase tracking-wider mb-2">
+        {/* Text Section - Adjusted padding for mobile */}
+        <div className="p-3 md:p-5 flex flex-col flex-grow">
+          <p className="text-[10px] md:text-xs font-bold text-brand-accent uppercase tracking-wider mb-1 md:mb-2 truncate">
             {categoryName}
           </p>
-          <h3 className="text-lg font-bold text-brand-blue-dark mb-3 leading-snug group-hover:text-brand-accent transition-colors line-clamp-2">
+          <h3 className="text-sm md:text-lg font-bold text-brand-blue-dark mb-2 md:mb-3 leading-snug group-hover:text-brand-accent transition-colors line-clamp-2">
             {product.name}
           </h3>
-          <p className="text-gray-600 text-sm leading-relaxed mb-4 line-clamp-3 flex-grow">
+          <p className="text-gray-600 text-xs md:text-sm leading-relaxed mb-3 md:mb-4 line-clamp-2 md:line-clamp-3 flex-grow">
             {product.shortDescription}
           </p>
 
-          <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between gap-3 relative z-20">
-              <span className="text-sm font-bold text-brand-accent group-hover:text-brand-accent-dark flex items-center">
-                  View Product
+          <div className="mt-auto pt-3 md:pt-4 border-t border-gray-100 flex items-center justify-between gap-2 md:gap-3 relative z-20">
+              <span className="text-xs md:text-sm font-bold text-brand-accent group-hover:text-brand-accent-dark flex items-center truncate">
+                  View <span className="hidden md:inline ml-1">Product</span>
               </span>
               
               {/* 3. Action Button - Z-20 to be clickable above the Link */}
               <button
                   onClick={handleAddToQuote}
-                  className="bg-brand-gray hover:bg-brand-yellow text-brand-blue-dark w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-300 shadow-sm cursor-pointer relative"
+                  className="bg-brand-gray hover:bg-brand-yellow text-brand-blue-dark w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-300 shadow-sm cursor-pointer relative flex-shrink-0"
                   title="Add to Quote"
                   aria-label={`Add ${product.name} to quote`}
               >

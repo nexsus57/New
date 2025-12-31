@@ -16,30 +16,24 @@ function RequestQuoteContent() {
     const { products } = useProducts();
     const { cart, removeFromCart, clearCart, addToCart } = useCart();
     
-    const [message, setMessage] = useState('');
-    const [redirectUrl, setRedirectUrl] = useState('');
-
+    // Handle adding product from URL query param (e.g. from Product Detail page)
     useEffect(() => {
-        // Fix: Guard against null searchParams
         if (!searchParams) return;
 
         const productId = searchParams.get('product');
         if (productId) {
             addToCart(productId);
             
-            // Construct new URL without the product param
+            // Construct new URL without the product param to clean it up
             const newParams = new URLSearchParams(searchParams.toString());
             newParams.delete('product');
             
-            // Safe fallback if pathname is null (unlikely in this context but satisfies TS)
             const currentPath = pathname || '/request-quote';
             router.replace(`${currentPath}?${newParams.toString()}`);
         }
     }, [searchParams, addToCart, router, pathname]);
 
-    useEffect(() => {
-        setRedirectUrl(`${window.location.origin}/thank-you.html`);
-    }, []);
+    const redirectUrl = typeof window !== 'undefined' ? `${window.location.origin}/thank-you.html` : '';
 
     const cartProducts = useMemo(() => {
         return cart.map(item => {
@@ -51,21 +45,13 @@ function RequestQuoteContent() {
         }).filter(item => item.details);
     }, [cart, products]);
 
-    const generatedMessage = useMemo(() => {
-        if (cartProducts.length === 0) return '';
-        let msg = "I would like to request a quote for the following items:\n\n";
-        cartProducts.forEach((item, index) => {
-            msg += `${index + 1}. ${item.details?.name} (Qty: ${item.quantity})\n`;
-        });
-        msg += "\nAdditional Requirements:\n";
-        return msg;
+    // Generate a structured string of items for the hidden form field
+    const orderSummary = useMemo(() => {
+        if (cartProducts.length === 0) return 'No items selected';
+        return cartProducts.map((item, index) => 
+            `${index + 1}. ${item.details?.name} -- Qty: ${item.quantity}`
+        ).join('\n');
     }, [cartProducts]);
-
-    useEffect(() => {
-        if (generatedMessage && !message) {
-            setMessage(generatedMessage);
-        }
-    }, [generatedMessage, message]);
 
     const formFields = [
         { name: 'name', label: 'Full Name', type: 'text', required: true, autoComplete: 'name' },
@@ -105,7 +91,7 @@ function RequestQuoteContent() {
                                                 <img 
                                                     src={item.details?.image} 
                                                     alt={item.details?.name} 
-                                                    className="w-16 h-16 object-cover rounded bg-gray-50"
+                                                    className="w-16 h-16 object-cover rounded bg-gray-50 flex-shrink-0"
                                                 />
                                                 <div className="flex-grow">
                                                     <h3 className="font-semibold text-sm text-gray-800 line-clamp-2">{item.details?.name}</h3>
@@ -155,21 +141,21 @@ function RequestQuoteContent() {
                                     <input type="hidden" name="_next" value={redirectUrl} />
                                     <input type="hidden" name="_honey" style={{ display: 'none' }} />
                                     <input type="hidden" name="_subject" value={`New Quote Request (${cart.length} items)`} />
+                                    
+                                    {/* HIDDEN: This sends the list of items to email without cluttering the message box */}
+                                    <input type="hidden" name="ORDER_SUMMARY" value={orderSummary} />
 
                                     <div className="mt-6">
                                         <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
-                                            Message / Item Details<span className="text-red-500">*</span>
+                                            Additional Notes / Specifications
                                         </label>
                                         <textarea
                                             id="message"
                                             name="message"
-                                            rows={10}
-                                            defaultValue={generatedMessage}
-                                            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-accent focus:border-brand-accent transition font-mono text-sm"
-                                            required
-                                            placeholder="Please describe your application, required dimensions, quantity, and any other specifications."
+                                            rows={5}
+                                            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-accent focus:border-brand-accent transition font-sans text-sm"
+                                            placeholder="Please specify any custom sizes, specific brands, or urgent delivery requirements."
                                         ></textarea>
-                                        <p className="text-xs text-gray-500 mt-1">You can edit this message to add specific dimensions (width, length) for each item.</p>
                                     </div>
 
                                     <div className="mt-8 text-center">

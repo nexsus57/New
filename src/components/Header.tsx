@@ -56,7 +56,8 @@ export default function Header() {
 
   return (
     <>
-      <header className={`bg-white sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'shadow-md' : 'shadow-sm'}`}>
+      {/* Changed z-40 to z-[100] to ensure header is always on top */}
+      <header className={`bg-white sticky top-0 z-[100] transition-all duration-300 ${isScrolled ? 'shadow-md' : 'shadow-sm'}`}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <Link href="/" className="flex-shrink-0 z-50" aria-label="Tape India Home">

@@ -97,7 +97,8 @@ export default function HomeView() {
                 </p>
             </AnimatedSection>
             <AnimatedSection delay="delay-100">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* 2 cols mobile, 3 cols desktop */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
                     {categories.slice(0, 6).map(cat => (
                         <CategoryCard key={cat.id} category={cat} />
                     ))}
@@ -159,14 +160,15 @@ export default function HomeView() {
                 </p>
             </AnimatedSection>
             <AnimatedSection delay="delay-100">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {INDUSTRIES.slice(0, 3).map(ind => (
+                {/* Showing ALL industries. 2 cols mobile, 3 cols desktop */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                    {INDUSTRIES.map(ind => (
                         <IndustryCard key={ind.id} industry={ind} />
                     ))}
                 </div>
                 <div className="text-center mt-12">
                     <Link href="/industries" className="inline-flex items-center text-brand-accent font-bold text-lg hover:text-brand-accent-dark hover:underline transition-colors group">
-                        Explore All Industries 
+                        View All Industries 
                         <i className="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
                     </Link>
                 </div>
@@ -185,7 +187,8 @@ export default function HomeView() {
               </AnimatedSection>
               <AnimatedSection delay="delay-200">
                   {popularProducts.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                      /* 2 cols mobile, 3 cols desktop */
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
                           {popularProducts.slice(0, 6).map(product => (
                               <ProductCard key={product.id} product={product} categoryName={categoryMap.get(product.category) || ''} />
                           ))}
